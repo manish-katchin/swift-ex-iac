@@ -1,0 +1,155 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ECS Engines Service Network Stack (ALB, Target Group, SG) with Domain Support
+
+Parameters:
+  EnvironmentName:
+    Type: String
+  ComponentName:
+    Type: String
+  PartName:
+    Type: String
+  VpcId:
+    Type: String
+  PrivateSubnetIds:
+    Type: CommaDelimitedList
+  PublicSubnetIds:
+    Type: CommaDelimitedList
+  EnginesServicePort:
+    Type: Number
+    Default: 3000
+  LoadBalancerArn:
+    Description: Shared ALB ARN (required - from infrastructure stack)
+    Type: String
+  ListenerArn:
+    Description: Shared ALB Listener ARN (required - from infrastructure stack)
+    Type: String
+  Priority:
+    Description: Listener rule priority (must be unique)
+    Type: Number
+    Default: 100
+  PathPattern:
+    Description: Path pattern for routing (e.g., /api/*, /engines/*)
+    Type: String
+    Default: "/*"
+  # Domain Support Parameters
+  DomainName:
+    Description: Domain name for the service (e.g., api.example.com)
+    Type: String
+    Default: ""
+  CertificateArn:
+    Description: ACM SSL Certificate ARN for HTTPS
+    Type: String
+    Default: ""
+  EnableHTTPS:
+    Description: Enable HTTPS listener rule
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+
+Conditions:
+  CreateNewALB: !Equals [!Ref LoadBalancerArn, ""]
+  HasDomain: !Not [!Equals [!Ref DomainName, ""]]
+  HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
+  ShouldEnableHTTPS: !And [!Equals [!Ref EnableHTTPS, "true"], !Equals [!Ref DomainName, ""], !Equals [!Ref CertificateArn, ""]]
+
+Resources:
+  EnginesServiceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "SG for ${EnvironmentName}-${ComponentName}-${PartName} ECS Service"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref EnginesServicePort
+          ToPort: !Ref EnginesServicePort
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-${ComponentName}-${PartName}-sg"
+
+  # ALB is shared - created in infrastructure stack
+
+  EnginesServiceTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${EnvironmentName}-${ComponentName}-${PartName}-tg"
+      VpcId: !Ref VpcId
+      Protocol: HTTP
+      Port: !Ref EnginesServicePort
+      TargetType: ip
+      Matcher:
+        HttpCode: 200-399
+      HealthCheckPath: /
+      HealthCheckPort: !Ref EnginesServicePort
+      HealthCheckProtocol: HTTP
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckTimeoutSeconds: 5
+      HealthCheckIntervalSeconds: 30
+
+  # HTTP Listener Rule (always created)
+  EnginesServiceListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref EnginesServiceTargetGroup
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - !Ref PathPattern
+      ListenerArn: !Ref ListenerArn
+      Priority: !Ref Priority
+
+  # HTTPS Listener Rule (only if domain and certificate provided)
+  EnginesServiceHTTPSListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: ShouldEnableHTTPS
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref EnginesServiceTargetGroup
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - !Ref PathPattern
+        - Field: host-header
+          Values:
+            - !Ref DomainName
+      ListenerArn: !Ref ListenerArn
+      Priority: !Ref Priority
+
+  # HTTPS Listener (port 443) - only if HTTPS enabled
+  EnginesServiceHTTPSListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: ShouldEnableHTTPS
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref EnginesServiceTargetGroup
+      LoadBalancerArn: !Ref LoadBalancerArn
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref CertificateArn
+
+Outputs:
+  EnginesServiceSecurityGroupId:
+    Value: !Ref EnginesServiceSecurityGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-EnginesServiceSecurityGroupId"
+
+  EnginesServiceServiceTargetGroup:
+    Value: !Ref EnginesServiceTargetGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-EnginesServiceServiceTargetGroup"
+
+  ListenerRuleArn:
+    Value: !Ref EnginesServiceListenerRule
+    Export:
+      Name: !Sub "${AWS::StackName}-ListenerRuleArn"
+
+  # HTTPSListenerArn and DomainName outputs removed to avoid empty string export issues

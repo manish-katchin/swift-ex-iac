@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ECR Repository for Engines Service
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: dev
+  ComponentName:
+    Type: String
+    Default: tms2
+  PartName:
+    Type: String
+    Default: engines
+
+Resources:
+  EnginesServiceECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${EnvironmentName}-${ComponentName}-${PartName}-ecr"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep last 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+                },
+                "action": {
+                  "type": "expire"
+                }
+              }
+            ]
+          }
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-${ComponentName}-${PartName}-ecr"
+
+Outputs:
+  RepositoryUri:
+    Description: ECR Repository URI
+    Value: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EnginesServiceECRRepository}"
+    Export:
+      Name: !Sub "${AWS::StackName}-RepositoryUri"
