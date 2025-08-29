@@ -1,0 +1,58 @@
+[
+    {
+        "ParameterKey": "PublicSubnetIds",
+        "ParameterValue": "subnet-0f1e245f681cbfddb,subnet-042575027054e1442"
+    },
+    {
+        "ParameterKey": "EnableHTTPS",
+        "ParameterValue": "true"
+    },
+    {
+        "ParameterKey": "EnvironmentName",
+        "ParameterValue": "dev"
+    },
+    {
+        "ParameterKey": "EnginesServicePort",
+        "ParameterValue": "3000"
+    },
+    {
+        "ParameterKey": "DomainName",
+        "ParameterValue": "api.swiftexchange.io"
+    },
+    {
+        "ParameterKey": "Priority",
+        "ParameterValue": "102"
+    },
+    {
+        "ParameterKey": "PrivateSubnetIds",
+        "ParameterValue": "subnet-03ef3f9fd990aca0c,subnet-0f2b0d24a47d6d38c"
+    },
+    {
+        "ParameterKey": "ListenerArn",
+        "ParameterValue": "arn:aws:elasticloadbalancing:ap-south-1:542005048192:listener/app/dev-swiftx-shared-alb/4b36588ad3b5f7d6/421395cce3e65f8f"
+    },
+    {
+        "ParameterKey": "PathPattern",
+        "ParameterValue": "/*"
+    },
+    {
+        "ParameterKey": "PartName",
+        "ParameterValue": "engines"
+    },
+    {
+        "ParameterKey": "VpcId",
+        "ParameterValue": "vpc-0a2f4c9c966b604b1"
+    },
+    {
+        "ParameterKey": "LoadBalancerArn",
+        "ParameterValue": "arn:aws:elasticloadbalancing:ap-south-1:542005048192:loadbalancer/app/dev-swiftx-shared-alb/4b36588ad3b5f7d6"
+    },
+    {
+        "ParameterKey": "ComponentName",
+        "ParameterValue": "swiftx"
+    },
+    {
+        "ParameterKey": "CertificateArn",
+        "ParameterValue": ""
+    }
+]

@@ -93,10 +93,7 @@ if [[ "$ENABLE_HTTPS" == "true" ]]; then
     echo "Error: Domain name is required when enabling HTTPS. Use --domain <domain>"
     exit 1
   fi
-  if [[ -z "$CERTIFICATE_ARN" ]]; then
-    echo "Error: Certificate ARN is required when enabling HTTPS. Use --certificate <arn>"
-    exit 1
-  fi
+  # Certificate ARN is optional - will be created automatically if not provided
 fi
 
 # Set AWS profile
@@ -266,9 +263,6 @@ aws cloudformation deploy \
     PrivateSubnetIds="$PRIVATE_SUBNET_IDS" \
     EnginesServicePort=$SERVICE_PORT \
     EnginesServiceSecurityGroupId="$SECURITY_GROUP_ID" \
-    DatadogAgentEnabled=false \
-    DataDogDeliveryStreamArn="dummy-arn" \
-    DataDogIamRoleArn="dummy-arn" \
     EnginesServiceExecutionRoleArn="$EXECUTION_ROLE_ARN" \
     EnginesServiceTaskRoleArn="$TASK_ROLE_ARN" \
     EnginesServiceCluster="$CLUSTER_NAME" \

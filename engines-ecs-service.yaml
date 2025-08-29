@@ -21,16 +21,7 @@ Parameters:
     Type: String
     Default: 3000
 
-  DatadogAgentEnabled:
-    Description: Runs the Datadog Agent with APM
-    AllowedValues: [true, false]
-    Type: String
-  DataDogDeliveryStreamArn:
-    Description: Runs the Datadog Agent with APM
-    Type: String
-  DataDogIamRoleArn:
-    Description: Runs the Datadog Agent with APM
-    Type: String
+
   EnginesServiceSecurityGroupId:
     Description: The EnginesService security group ID
     Type: String
@@ -71,7 +62,6 @@ Parameters:
 Conditions:
   ZeroDesiredCount: !Equals [!Ref IsItFirstSetup, "true"]
   NonZeroDesiredCount: !Equals [!Ref IsItFirstSetup, "false"]
-  CreateDatadogMonitor: !Equals [!Ref DatadogAgentEnabled, "true"]
   CreateProdResources:
     !Or
       - !Equals [!Ref EnvironmentName, "prod"]
@@ -101,21 +91,7 @@ Resources:
           Value: !Join ["-", [!Ref ComponentName, !Ref PartName]]
         - Key: StackID
           Value: !Ref "AWS::StackId"
-  CloudWatchLogsSubscriptionFilter:
-    Type: AWS::Logs::SubscriptionFilter
-    Condition: CreateDatadogMonitor
-    Properties:
-      FilterName:
-        Fn::Join:
-          - "-"
-          - - !Ref EnvironmentName
-            - !Ref ComponentName
-            - !Ref PartName
-            - "common-log-group"
-      LogGroupName: !Ref CloudWatchLogsGroup # Required
-      DestinationArn: !Ref DataDogDeliveryStreamArn # Required
-      RoleArn: !Ref DataDogIamRoleArn
-      FilterPattern: "" # Required
+
 
   EnginesServiceTaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -254,50 +230,7 @@ Resources:
               awslogs-region: !Ref AWS::Region
               awslogs-group: !Ref CloudWatchLogsGroup
               awslogs-stream-prefix: !Join ["-", [!Ref ComponentName, !Ref PartName]]
-        - Fn::If:
-            - CreateDatadogMonitor
-            - Name:
-                Fn::Join:
-                  - "-"
-                  - - !Ref EnvironmentName
-                    - !Ref ComponentName
-                    - !Ref PartName
-                    - "dd-agent"
-              Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/ecr-public/datadog/agent:latest"
-              Cpu: 512
-              Memory: 512
-              Environment:
-                - Name: ECS_FARGATE
-                  Value: true
-                - Name: DD_APM_ENABLED
-                  Value: true
-                - Name: DD_APM_IGNORE_RESOURCES
-                  Value: "GET /*"
-              Secrets:
-                - Name: DD_API_KEY
-                  ValueFrom: datadog-api-key
-              HealthCheck:
-                Command:
-                  - CMD-SHELL
-                  - "agent health"
-                Interval: 30
-                Retries: 3
-                Timeout: 5
-                StartPeriod: 15
-              LogConfiguration:
-                LogDriver: awslogs
-                Options:
-                  awslogs-region: !Ref AWS::Region
-                  awslogs-group:
-                    Fn::Join:
-                      - "-"
-                      - - !Ref EnvironmentName
-                        - !Ref ComponentName
-                        - !Ref PartName
-                        - "dd-agent"
-                  awslogs-create-group: true
-                  awslogs-stream-prefix: !Join ["-", ["datadog-agent", !Ref ComponentName, !Ref PartName]]
-            - !Ref "AWS::NoValue"
+
       ExecutionRoleArn: !Ref EnginesServiceExecutionRoleArn
       TaskRoleArn: !Ref EnginesServiceTaskRoleArn
       Tags:
