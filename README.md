@@ -20,7 +20,19 @@ Creates:
 - ECS Cluster with proper IAM roles
 - Ready for multiple services
 
-### **Step 2: Deploy Services**
+### **Step 2: Deploy Security (WAF)**
+```bash
+# Deploy WAF protection for your load balancer
+./deploy-security.sh -p swiftx-dev -e dev -l "arn:aws:elasticloadbalancing:ap-south-1:542005048192:loadbalancer/app/dev-swiftx-shared-alb/4b36588ad3b5f7d6" --waf-only
+```
+Creates:
+- AWS WAF Web ACL with 5 security rules
+- SQL injection protection
+- Rate limiting (1000 req/5min per IP)
+- IP reputation filtering
+- Known bad inputs blocking
+
+### **Step 3: Deploy Services**
 ```bash
 # Deploy engines service on port 80 (default path /*)
 ./deploy-service.sh -p swiftx-dev -s engines -P 80
@@ -42,11 +54,13 @@ Creates:
 | `engines-service-network.yaml` | Load balancer | ALB, Target Group, Security Group |
 | `engines-ecs-service.yaml` | Application | ECS Service, Task Definition, Auto Scaling |
 | `engines-ecr.yaml` | Container registry | ECR Repository |
+| `waf-security.yaml` | Security protection | WAF Web ACL, Security Rules, ALB Association |
 
 ### **Scripts**
 | File | Purpose | When to Use |
 |------|---------|-------------|
 | `deploy-infrastructure.sh` | Creates shared infrastructure | Run ONCE per environment |
+| `deploy-security.sh` | Deploys WAF security protection | Run after infrastructure, before services |
 | `deploy-service.sh` | Deploys individual services | Run for each service |
 
 ## 🔐 **Secrets & Configuration**
@@ -78,6 +92,7 @@ aws ssm put-parameter --name "/dev/swiftx/engines/api_key" --value "your-secret-
 ### **Shared (Created Once)**
 - `dev-swiftx-bootstrap-network` - VPC, Subnets, NAT, **Shared ALB**
 - `dev-swiftx-cluster` - ECS Cluster, IAM Roles
+- `dev-swiftx-security-waf` - WAF Web ACL, Security Rules
 
 ### **Per Service**
 - `dev-swiftx-{service}-iac-network` - Target Group, Security Group, **ALB Listener Rule**
@@ -139,11 +154,76 @@ aws elbv2 describe-target-health --target-group-arn <from-aws-console> --region 
 - **Health check fails**: Ensure your app responds on the configured port and health check path
 - **Secrets not found**: Verify Parameter Store paths match exactly
 
+## 🔒 **Security Features**
+
+### **WAF Protection**
+Your application is protected by AWS WAF with:
+- **Core Rule Set**: Blocks common web exploits (XSS, CSRF, etc.)
+- **Rate Limiting**: 1000 requests per 5 minutes per IP (2000 for production)
+- **SQL Injection Protection**: Blocks SQL injection attacks
+- **Known Bad Inputs**: Blocks malicious input patterns
+- **IP Reputation Filter**: Blocks requests from known malicious IPs
+
+### **Traffic Flow**
+```
+Internet → Domain → WAF (5 Rules) → ALB → ECS Service → Your App
+```
+
+### **Updating WAF Rules**
+
+#### **Method 1: Update CloudFormation Template (Recommended)**
+```bash
+# Edit waf-security.yaml to modify rules, then redeploy
+./deploy-security.sh -p swiftx-dev -e dev -l "arn:aws:elasticloadbalancing:ap-south-1:542005048192:loadbalancer/app/dev-swiftx-shared-alb/4b36588ad3b5f7d6" --waf-only
+```
+
+#### **Method 2: Add New Rules via AWS Console**
+1. Go to AWS WAF Console → Web ACLs
+2. Select `dev-swiftx-waf-acl`
+3. Add new rules with higher priority numbers (6, 7, 8, etc.)
+4. Rules are applied immediately
+
+#### **Method 3: Update Existing Rules via AWS CLI**
+```bash
+# Example: Update rate limit from 1000 to 500
+aws wafv2 update-web-acl \
+  --scope REGIONAL \
+  --id 42fdd2e9-44c9-4c4f-994a-17b1d081dc3f \
+  --default-action Allow={} \
+  --rules '[
+    {
+      "Name": "RateLimitRule",
+      "Priority": 2,
+      "Action": {"Block": {}},
+      "Statement": {
+        "RateBasedStatement": {
+          "Limit": 500,
+          "AggregateKeyType": "IP"
+        }
+      },
+      "VisibilityConfig": {
+        "SampledRequestsEnabled": true,
+        "CloudWatchMetricsEnabled": true,
+        "MetricName": "RateLimitMetric"
+      }
+    }
+  ]' \
+  --profile swiftx-dev \
+  --region ap-south-1
+```
+
+#### **Common Rule Updates**
+- **Rate Limiting**: Change limit (1000 → 500 for stricter, 1000 → 2000 for looser)
+- **Geo-blocking**: Add/remove countries
+- **Custom Rules**: Add specific patterns to block
+- **Rule Priorities**: Reorder rules (lower number = higher priority)
+
 ## ✅ **Summary**
 
 1. **Deploy infrastructure once**: `./deploy-infrastructure.sh`
-2. **Add services**: `./deploy-service.sh -s <name> -P <port>`
-3. **Add secrets**: Use Parameter Store with path pattern
-4. **Deploy images**: Push to ECR repository
+2. **Deploy security (WAF)**: `./deploy-security.sh --waf-only`
+3. **Add services**: `./deploy-service.sh -s <name> -P <port>`
+4. **Add secrets**: Use Parameter Store with path pattern
+5. **Deploy images**: Push to ECR repository
 
-**Result**: Scalable ECS platform with proper secrets management! 🚀
+**Result**: Secure, scalable ECS platform with WAF protection and proper secrets management! 🚀
