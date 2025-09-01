@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: AWS WAF Web ACL for SwiftX Load Balancer Security
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: Environment name (e.g., dev, staging, prod)
+  ComponentName:
+    Type: String
+    Description: Component name (e.g., swiftx)
+  LoadBalancerArn:
+    Type: String
+    Description: ARN of the Application Load Balancer to protect
+
+Conditions:
+  IsProduction: !Equals [!Ref EnvironmentName, "prod"]
+
+Resources:
+  # WAF Web ACL
+  SwiftXWebACL:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Name: !Sub "${EnvironmentName}-${ComponentName}-waf-acl"
+      Description: !Sub "WAF Web ACL for ${EnvironmentName} ${ComponentName} environment"
+      Scope: REGIONAL
+      DefaultAction:
+        Allow: {}
+      Rules:
+        # 1. AWS Managed Rules - Core Rule Set
+        - Name: AWSManagedRulesCommonRuleSet
+          Priority: 1
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: CommonRuleSetMetric
+
+        # 2. Rate Limiting Rule
+        - Name: RateLimitRule
+          Priority: 2
+          Action:
+            Block: {}
+          Statement:
+            RateBasedStatement:
+              Limit: !If [IsProduction, 2000, 1000]
+              AggregateKeyType: IP
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: RateLimitMetric
+
+        # 3. SQL Injection Protection
+        - Name: SQLInjectionRule
+          Priority: 3
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesSQLiRuleSet
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: SQLiRuleSetMetric
+
+        # 4. Known Bad Inputs
+        - Name: KnownBadInputsRule
+          Priority: 4
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesKnownBadInputsRuleSet
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: KnownBadInputsMetric
+
+        # 5. IP Reputation Filter
+        - Name: IPReputationRule
+          Priority: 5
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesAmazonIpReputationList
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: IPReputationMetric
+
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub "${EnvironmentName}-${ComponentName}-waf-metrics"
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-${ComponentName}-waf-acl"
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  # Associate WAF with Load Balancer
+  WAFAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    Properties:
+      ResourceArn: !Ref LoadBalancerArn
+      WebACLArn: !GetAtt SwiftXWebACL.Arn
+
+Outputs:
+  WebACLArn:
+    Description: ARN of the WAF Web ACL
+    Value: !GetAtt SwiftXWebACL.Arn
+    Export:
+      Name: !Sub "${EnvironmentName}-${ComponentName}-WAF-ACL-ARN"
+
+  WebACLId:
+    Description: ID of the WAF Web ACL
+    Value: !Ref SwiftXWebACL
+    Export:
+      Name: !Sub "${EnvironmentName}-${ComponentName}-WAF-ACL-ID"
