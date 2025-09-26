@@ -214,7 +214,7 @@ Resources:
         - Key: Name
           Value: !Sub "${EnvironmentName}-${ComponentName}-shared-alb"
 
-  # Shared ALB Listener
+  # Shared ALB HTTP Listener
   SharedALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -227,6 +227,32 @@ Resources:
       LoadBalancerArn: !Ref SharedALB
       Port: 80
       Protocol: HTTP
+
+  # Shared ALB HTTPS Listener
+  SharedALBHTTPSListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            StatusCode: 404
+            ContentType: text/plain
+            MessageBody: "Service not found"
+      LoadBalancerArn: !Ref SharedALB
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref SharedALBCertificate
+
+  # ACM Certificate for HTTPS
+  SharedALBCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: "api.swiftexchange.io"
+      ValidationMethod: DNS
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-${ComponentName}-shared-alb-cert"
 
 Outputs:
   VpcId:
@@ -254,10 +280,22 @@ Outputs:
       Name: !Sub "${AWS::StackName}-SharedALBArn"
 
   SharedALBListenerArn:
-    Description: Shared ALB Listener ARN
+    Description: Shared ALB HTTP Listener ARN
     Value: !Ref SharedALBListener
     Export:
       Name: !Sub "${AWS::StackName}-SharedALBListenerArn"
+
+  SharedALBHTTPSListenerArn:
+    Description: Shared ALB HTTPS Listener ARN
+    Value: !Ref SharedALBHTTPSListener
+    Export:
+      Name: !Sub "${AWS::StackName}-SharedALBHTTPSListenerArn"
+
+  SharedALBCertificateArn:
+    Description: Shared ALB Certificate ARN
+    Value: !Ref SharedALBCertificate
+    Export:
+      Name: !Sub "${AWS::StackName}-SharedALBCertificateArn"
 
   SharedALBDNSName:
     Description: Shared ALB DNS Name

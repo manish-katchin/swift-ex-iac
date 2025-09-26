@@ -21,7 +21,10 @@ Parameters:
     Description: Shared ALB ARN (required - from infrastructure stack)
     Type: String
   ListenerArn:
-    Description: Shared ALB Listener ARN (required - from infrastructure stack)
+    Description: Shared ALB HTTP Listener ARN (required - from infrastructure stack)
+    Type: String
+  EnginesServiceHTTPSListenerArn:
+    Description: Shared ALB HTTPS Listener ARN (required - from infrastructure stack)
     Type: String
   Priority:
     Description: Listener rule priority (must be unique)
@@ -119,33 +122,8 @@ Resources:
         - Field: host-header
           Values:
             - !Ref DomainName
-      ListenerArn: !Ref EnginesServiceHTTPSListener
+      ListenerArn: !Ref EnginesServiceHTTPSListenerArn
       Priority: !Ref Priority
-
-  # HTTPS Listener (port 443) - only if HTTPS enabled
-  EnginesServiceHTTPSListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Condition: ShouldEnableHTTPS
-    Properties:
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref EnginesServiceTargetGroup
-      LoadBalancerArn: !Ref LoadBalancerArn
-      Port: 443
-      Protocol: HTTPS
-      Certificates:
-        - CertificateArn: !Ref EnginesServiceCertificate
-
-  # ACM Certificate for the domain
-  EnginesServiceCertificate:
-    Type: AWS::CertificateManager::Certificate
-    Condition: ShouldEnableHTTPS
-    Properties:
-      DomainName: !Ref DomainName
-      ValidationMethod: DNS
-      Tags:
-        - Key: Name
-          Value: !Sub "${EnvironmentName}-${ComponentName}-${PartName}-cert"
 
   # Note: DNS records will be created manually in Route 53
 
@@ -164,12 +142,5 @@ Outputs:
     Value: !Ref EnginesServiceListenerRule
     Export:
       Name: !Sub "${AWS::StackName}-ListenerRuleArn"
-
-  # Certificate output (only when HTTPS enabled)
-  CertificateArn:
-    Condition: ShouldEnableHTTPS
-    Value: !Ref EnginesServiceCertificate
-    Export:
-      Name: !Sub "${AWS::StackName}-CertificateArn"
 
   # HTTPSListenerArn and DomainName outputs removed to avoid empty string export issues

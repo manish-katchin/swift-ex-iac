@@ -160,6 +160,13 @@ SHARED_ALB_LISTENER_ARN=$(aws cloudformation describe-stacks \
     --query 'Stacks[0].Outputs[?OutputKey==`SharedALBListenerArn`].OutputValue' \
     --output text)
 
+SHARED_ALB_HTTPS_LISTENER_ARN=$(aws cloudformation describe-stacks \
+    --stack-name $BOOTSTRAP_STACK_NAME \
+    --region $AWS_REGION \
+    $PROFILE_OPT \
+    --query 'Stacks[0].Outputs[?OutputKey==`SharedALBHTTPSListenerArn`].OutputValue' \
+    --output text)
+
 CLUSTER_NAME=$(aws cloudformation describe-stacks \
     --stack-name $CLUSTER_STACK_NAME \
     --region $AWS_REGION \
@@ -210,6 +217,7 @@ aws cloudformation deploy \
     EnginesServicePort=$SERVICE_PORT \
     LoadBalancerArn="$SHARED_ALB_ARN" \
     ListenerArn="$SHARED_ALB_LISTENER_ARN" \
+    EnginesServiceHTTPSListenerArn="$SHARED_ALB_HTTPS_LISTENER_ARN" \
     PathPattern="$PATH_PATTERN" \
     Priority=$PRIORITY \
     DomainName="$DOMAIN_NAME" \
@@ -268,6 +276,14 @@ aws cloudformation deploy \
     EnginesServiceCluster="$CLUSTER_NAME" \
     ForceNewDeployment="true" \
     $PROFILE_OPT
+
+# Step 6: Environment variables are managed manually in Parameter Store
+echo "Step 6: Environment variables managed in Parameter Store"
+echo "To add new environment variables:"
+echo "1. Add to Parameter Store: /${ENVIRONMENT_NAME}/${COMPONENT_NAME}/${SERVICE_NAME}/<variable_name>"
+echo "2. Update Dockerfile startup script if needed"
+echo "3. Redeploy Docker image"
+echo "No CloudFormation changes needed!"
 
 # Get AWS Account ID
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --region $AWS_REGION $PROFILE_OPT --query 'Account' --output text)

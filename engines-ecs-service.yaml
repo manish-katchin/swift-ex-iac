@@ -124,105 +124,20 @@ Resources:
                     - "ecr"
           Essential: true
           PortMappings:
-            - containerPort: !Ref EnginesServicePort
-              hostPort: !Ref EnginesServicePort
-              protocol: tcp
+            - ContainerPort: !Ref EnginesServicePort
+              Protocol: tcp
           Environment:
-            - Name: NODE_ENV
+            - Name: ENVIRONMENT_NAME
               Value: !Ref EnvironmentName
-            - Name: PORT
-              Value: !Ref EnginesServicePort
+            - Name: COMPONENT_NAME
+              Value: !Ref ComponentName
+            - Name: PART_NAME
+              Value: !Ref PartName
             - Name: AWS_REGION
               Value: !Ref AWS::Region
-          Secrets:
-            - Name: MONGODB_CONN_STRING
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/mongodb_conn_string"
-            - Name: DB_NAME
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/db_name"
-            - Name: PASSWORD_SALT_ROUNDS
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/password_salt_rounds"
-            - Name: JWT_SECRET
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/jwt_secret"
-            - Name: GMAIL_CLIENT_ID
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/gmail_client_id"
-            - Name: GMAIL_CLIENT_SECRET
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/gmail_client_secret"
-            - Name: GMAIL_ACCESS_TOKEN
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/gmail_access_token"
-            - Name: GMAIL_REFRESH_TOKEN
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/gmail_refresh_token"
-            - Name: GMAIL_REDIRECT_URI
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/gmail_redirect_uri"
-            - Name: ALCHEMY_PAY_QUOTE_REQUEST_URL
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_quote_request_url"
-            - Name: ALCHEMY_PAY_REGISTER_USER_REQUEST_URL
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_register_user_request_url"
-            - Name: ALCHEMY_PAY_USER_KYC_STATUS_REQUEST_URL
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_user_kyc_status_request_url"
-            - Name: ALCHEMY_PAY_ORDER_CREATION_REQUEST_URL
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_order_creation_request_url"
-            - Name: ALCHEMY_PAY_USER_AUTH_TOKEN_REQUEST_URL
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_user_auth_token_request_url"
-            - Name: ALCHEMY_PAY_USER_SELL_ORDER_REQUEST_URL
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_user_sell_order_request_url"
-            - Name: ALCHEMY_PAY_USER_SELL_ORDER_URL
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_user_sell_order_url"
-            - Name: ALCHEMY_PAY_SELL_REDIRECT
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_sell_redirect"
-            - Name: ALCHEMY_PAY_SELL_WEBHOOK
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_sell_webhook"
-            - Name: ALCHEMY_PAY_REDIRECT_URL
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_redirect_url"
-            - Name: ALCHEMY_PAY_WEBHOOK_URL
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_webhook_url"
-            - Name: ALCHEMY_PAY_SECRET
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_secret"
-            - Name: ALCHEMY_PAY_APPID
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_appid"
-            - Name: ALCHEMY_PAY_MERCHANT_NO
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_merchant_no"
-            - Name: ALCHEMY_PAY_ACCOUNT_ID
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_pay_account_id"
-            - Name: ALCHEMY_PROVIDER_WEBSOCKET
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/alchemy_provider_websocket"
-            - Name: STELLAR_USDC_ADDRESS
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/stellar_usdc_address"
-            - Name: STELLAR_ONE_TAP_KEY
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/stellar_one_tap_key"
-            - Name: ACTIVATE_STELLAR_ADDRESS
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/activate_stellar_address"
-            - Name: RPC_STELLAR
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/rpc_stellar"
-            - Name: STELLAR_USDC_TRUST_LIMIT
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/stellar_usdc_trust_limit"
-            - Name: STELLAR_AMOUNT
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/stellar_amount"
-            - Name: MORALIS_API_KEY
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/moralis_api_key"
-            - Name: SOROBAN_HOOKS_API_KEY
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/soroban_hooks_api_key"
-            - Name: SOROBAN_HOOKS_API_TYPE
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/soroban_hooks_api_type"
-            - Name: SOROBON_NOTIFICATION_WEBHOOK
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/sorobon_notification_webhook"
-            - Name: MORALIS_NOTIFICATION_WEBHOOK
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/moralis_notification_webhook"
-            - Name: NOTIFICATION_ENCRYPT_KEY
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/notification_encrypt_key"
-            - Name: SOROBON_WALLET_WATCH_URL
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/sorobon_wallet_watch_url"
-            - Name: ETH_SMART_CONTRACT
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/eth_smart_contract"
-            - Name: ETH_PROVIDER
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/eth_provider"
-            - Name: COIN_GECKO_API_URL
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/coin_gecko_api_url"
-            - Name: ERC20_TRANSFER_TOPIC
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/erc20_transfer_topic"
-            - Name: ERC20_APPROVAL_TOPIC
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/erc20_approval_topic"
-            - Name: ACTIVATE_WALLET_TIMEOUT
-              ValueFrom: !Sub "/${EnvironmentName}/${ComponentName}/${PartName}/activate_wallet_timeout"
+            - Name: PORT
+              Value: !Ref EnginesServicePort
+          # No Secrets section - all environment variables fetched dynamically from Parameter Store
           # ReadonlyRootFilesystem: true  # Commented out for nginx compatibility
           LogConfiguration:
             LogDriver: awslogs
@@ -278,6 +193,7 @@ Resources:
             - !Ref EnginesServiceSecurityGroupId
           Subnets: !Ref PrivateSubnetIds
       PropagateTags: TASK_DEFINITION
+      HealthCheckGracePeriodSeconds: 300
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 100
