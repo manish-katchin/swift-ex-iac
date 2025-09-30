@@ -32,6 +32,10 @@
         "ParameterValue": "arn:aws:elasticloadbalancing:ap-south-1:542005048192:listener/app/dev-swiftx-shared-alb/4b36588ad3b5f7d6/421395cce3e65f8f"
     },
     {
+        "ParameterKey": "EnginesServiceHTTPSListenerArn",
+        "ParameterValue": "arn:aws:elasticloadbalancing:ap-south-1:542005048192:listener/app/dev-swiftx-shared-alb/4b36588ad3b5f7d6/6ef7172cf3435c11"
+    },
+    {
         "ParameterKey": "PathPattern",
         "ParameterValue": "/*"
     },
@@ -53,6 +57,6 @@
     },
     {
         "ParameterKey": "CertificateArn",
-        "ParameterValue": ""
+        "ParameterValue": "arn:aws:acm:ap-south-1:542005048192:certificate/8fbfe8e2-500c-4aa5-8259-cb13a7a910aa"
     }
 ]
