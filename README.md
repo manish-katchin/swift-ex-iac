@@ -218,6 +218,47 @@ aws wafv2 update-web-acl \
 - **Custom Rules**: Add specific patterns to block
 - **Rule Priorities**: Reorder rules (lower number = higher priority)
 
+## 🗑️ **Teardown Infrastructure**
+
+When you need to completely remove all infrastructure:
+
+### **Quick Teardown**
+```bash
+# Test what would be deleted (safe)
+./teardown.sh -p swiftx-dev -e dev -r ap-south-1 --dry-run
+
+# Normal teardown with confirmation
+./teardown.sh -p swiftx-dev -e dev -r ap-south-1
+
+# Force teardown without confirmation
+./teardown.sh -p swiftx-dev -e dev -r ap-south-1 --force
+```
+
+### **What Gets Deleted**
+The teardown script removes everything in the correct dependency order:
+
+1. **ECS Services** - ECS services, ECR repositories, target groups
+2. **Security** - WAF Web ACLs and rules
+3. **ECS Cluster** - ECS cluster and IAM roles
+4. **Network** - VPC, subnets, NAT Gateway, ALB
+5. **Cleanup** - CloudWatch logs, Parameter Store, Secrets Manager
+
+### **Safety Features**
+- **Dry Run Mode**: Test what would be deleted without actually deleting
+- **Dependency Handling**: Deletes resources in correct order
+- **Error Recovery**: Retries failed deletions automatically
+- **Verification**: Confirms each resource is completely deleted
+- **Comprehensive**: Cleans up orphaned resources
+
+### **Teardown Options**
+| Option | Description |
+|--------|-------------|
+| `--dry-run` | Show what would be deleted without actually deleting |
+| `--force` | Skip confirmation prompts |
+| `-p <profile>` | AWS profile to use |
+| `-e <environment>` | Environment name (dev, staging, prod) |
+| `-r <region>` | AWS region |
+
 ## ✅ **Summary**
 
 1. **Deploy infrastructure once**: `./deploy-infrastructure.sh`
@@ -225,5 +266,6 @@ aws wafv2 update-web-acl \
 3. **Add services**: `./deploy-service.sh -s <name> -P <port>`
 4. **Add secrets**: Use Parameter Store with path pattern
 5. **Deploy images**: Push to ECR repository
+6. **Teardown when done**: `./teardown.sh -p <profile> -e <env> -r <region>`
 
 **Result**: Secure, scalable ECS platform with WAF protection and proper secrets management! 🚀
