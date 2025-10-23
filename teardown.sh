@@ -265,6 +265,9 @@ echo "=============================="
 
 # List of ECS service stacks to delete (in dependency order)
 ECS_STACKS=(
+  "${ENVIRONMENT_NAME}-swiftx-proxy-iac-ecs"
+  "${ENVIRONMENT_NAME}-swiftx-proxy-ecr"
+  "${ENVIRONMENT_NAME}-swiftx-proxy-iac-network"
   "${ENVIRONMENT_NAME}-swiftx-engines-iac-ecs"
   "${ENVIRONMENT_NAME}-swiftx-engines-ecr"
   "${ENVIRONMENT_NAME}-swiftx-engines-iac-network"
@@ -281,9 +284,24 @@ for stack in "${ECS_STACKS[@]}"; do
   fi
 done
 
-# Step 2: Delete Security (WAF)
+# Step 2: Delete Redis Cache
 echo ""
-echo "Step 2: Deleting Security Resources"
+echo "Step 2: Deleting Redis Cache"
+echo "============================"
+
+REDIS_STACK="${ENVIRONMENT_NAME}-swiftx-redis-cache"
+echo ""
+echo "Processing: $REDIS_STACK"
+echo "------------------------"
+delete_stack "$REDIS_STACK"
+
+if [[ "$DRY_RUN" != "true" ]]; then
+  verify_and_retry "$REDIS_STACK"
+fi
+
+# Step 3: Delete Security (WAF)
+echo ""
+echo "Step 3: Deleting Security Resources"
 echo "==================================="
 
 WAF_STACK="${ENVIRONMENT_NAME}-swiftx-security-waf"
@@ -296,9 +314,9 @@ if [[ "$DRY_RUN" != "true" ]]; then
   verify_and_retry "$WAF_STACK"
 fi
 
-# Step 3: Delete ECS Cluster
+# Step 4: Delete ECS Cluster
 echo ""
-echo "Step 3: Deleting ECS Cluster"
+echo "Step 4: Deleting ECS Cluster"
 echo "============================"
 
 CLUSTER_STACK="${ENVIRONMENT_NAME}-swiftx-cluster"
@@ -311,9 +329,9 @@ if [[ "$DRY_RUN" != "true" ]]; then
   verify_and_retry "$CLUSTER_STACK"
 fi
 
-# Step 4: Delete Bootstrap Network (VPC, ALB, etc.)
+# Step 5: Delete Bootstrap Network (VPC, ALB, etc.)
 echo ""
-echo "Step 4: Deleting Network Infrastructure"
+echo "Step 5: Deleting Network Infrastructure"
 echo "======================================"
 
 BOOTSTRAP_STACK="${ENVIRONMENT_NAME}-swiftx-bootstrap-network"
@@ -326,9 +344,9 @@ if [[ "$DRY_RUN" != "true" ]]; then
   verify_and_retry "$BOOTSTRAP_STACK"
 fi
 
-# Step 5: Clean up any remaining resources
+# Step 6: Clean up any remaining resources
 echo ""
-echo "Step 5: Cleaning up remaining resources"
+echo "Step 6: Cleaning up remaining resources"
 echo "======================================="
 
 # Delete CloudWatch Log Groups
@@ -443,6 +461,26 @@ else
     done
 fi
 
+# Delete S3 bucket contents (Firebase secrets)
+echo ""
+echo "S3 Bucket Contents:"
+echo "-------------------"
+if [[ "$DRY_RUN" == "true" ]]; then
+  aws s3 ls s3://dev-swiftx-secrets/ --region "$AWS_REGION" $PROFILE_OPT 2>/dev/null | while read line; do
+    if [[ -n "$line" ]]; then
+      echo "  🔍 [DRY RUN] Would delete S3 object: s3://dev-swiftx-secrets/$(echo $line | awk '{print $4}')"
+    fi
+  done
+else
+  aws s3 ls s3://dev-swiftx-secrets/ --region "$AWS_REGION" $PROFILE_OPT 2>/dev/null | while read line; do
+    if [[ -n "$line" ]]; then
+      object_key=$(echo $line | awk '{print $4}')
+      echo "  🗑️  Deleting S3 object: s3://dev-swiftx-secrets/$object_key"
+      aws s3 rm "s3://dev-swiftx-secrets/$object_key" --region "$AWS_REGION" $PROFILE_OPT 2>/dev/null || echo "    ⚠️  Failed to delete s3://dev-swiftx-secrets/$object_key"
+    fi
+  done
+fi
+
 echo ""
 echo "=============================================="
 echo "Teardown completed!"
@@ -451,8 +489,9 @@ echo ""
 echo "✅ All infrastructure for environment '$ENVIRONMENT_NAME' has been deleted"
 echo ""
 echo "Resources cleaned up:"
-echo "  - ECS Services and Clusters"
-echo "  - ECR Repositories"
+echo "  - ECS Services and Clusters (Engines + Proxy)"
+echo "  - ECR Repositories (Engines + Proxy)"
+echo "  - Redis Cache Cluster"
 echo "  - Load Balancers and Target Groups"
 echo "  - VPC, Subnets, and NAT Gateways"
 echo "  - Security Groups"
@@ -460,6 +499,7 @@ echo "  - WAF Web ACLs"
 echo "  - CloudWatch Log Groups"
 echo "  - Parameter Store parameters"
 echo "  - Secrets Manager secrets"
+echo "  - S3 bucket contents (Firebase secrets)"
 echo ""
 echo "💡 Note: Some resources may take a few minutes to fully delete"
 echo "   Check the AWS Console to verify all resources are removed"

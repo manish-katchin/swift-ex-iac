@@ -94,7 +94,13 @@ Resources:
                   - ssm:GetParameters
                   - ssm:GetParameter
                   - ssm:GetParametersByPath
-                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/${ComponentName}/${PartName}/*"
+                Resource:
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/${ComponentName}/*"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource:
+                  - !Sub "arn:aws:s3:::dev-swiftx-secrets/*"
       Tags:
         - Key: Name
           Value: !Sub "${EnvironmentName}-${ComponentName}-${PartName}-task-role"

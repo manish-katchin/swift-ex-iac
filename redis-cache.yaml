@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'ElastiCache Redis cluster for SwiftX proxy server'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: Environment name
+    AllowedValues: [dev, staging, prod]
+  
+  BootstrapStackName:
+    Type: String
+    Default: dev-swiftx-engines-network
+    Description: Name of the bootstrap network stack
+
+Resources:
+  # Security Group for Redis
+  RedisSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Redis cluster
+      VpcId: !ImportValue 
+        Fn::Sub: '${BootstrapStackName}-VpcId'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          CidrIp: 10.0.0.0/8
+          Description: Allow Redis access from VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-swiftx-redis-sg'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Subnet Group for Redis (using private subnets)
+  RedisSubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      Description: Subnet group for Redis cluster
+      SubnetIds: 
+        - !ImportValue 
+          Fn::Sub: '${BootstrapStackName}-PrivateSubnet1Id'
+        - !ImportValue 
+          Fn::Sub: '${BootstrapStackName}-PrivateSubnet2Id'
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-swiftx-redis-subnet-group'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Parameter Group for Redis
+  RedisParameterGroup:
+    Type: AWS::ElastiCache::ParameterGroup
+    Properties:
+      Description: Parameter group for Redis cluster
+      CacheParameterGroupFamily: redis6.x
+      Properties:
+        maxmemory-policy: allkeys-lru
+        timeout: 300
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-swiftx-redis-params'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Redis Cluster
+  RedisCluster:
+    Type: AWS::ElastiCache::ReplicationGroup
+    Properties:
+      ReplicationGroupDescription: Redis cluster for SwiftX proxy server
+      ReplicationGroupId: !Sub '${Environment}-swiftx-redis'
+      NodeType: cache.t3.micro
+      Port: 6379
+      Engine: redis
+      EngineVersion: 6.2
+      NumCacheClusters: 1
+      ParameterGroupName: !Ref RedisParameterGroup
+      CacheSubnetGroupName: !Ref RedisSubnetGroup
+      SecurityGroupIds:
+        - !Ref RedisSecurityGroup
+      AtRestEncryptionEnabled: false
+      TransitEncryptionEnabled: false
+      MultiAZEnabled: false
+      AutomaticFailoverEnabled: false
+      SnapshotRetentionLimit: 1
+      SnapshotWindow: 03:00-04:00
+      PreferredMaintenanceWindow: sun:04:00-sun:05:00
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-swiftx-redis'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: proxy-server
+
+Outputs:
+  RedisSecurityGroupId:
+    Description: Redis security group ID
+    Value: !Ref RedisSecurityGroup
+    Export:
+      Name: !Sub '${Environment}-swiftx-redis-sg'
+  
+  RedisClusterId:
+    Description: Redis cluster ID
+    Value: !Ref RedisCluster
+    Export:
+      Name: !Sub '${Environment}-swiftx-redis-cluster-id'
