@@ -17,8 +17,48 @@ Complete ECS deployment solution for new AWS accounts with Parameter Store/Secre
 ```
 Creates:
 - VPC with public/private subnets, NAT Gateway
+- **Shared ALB with HTTPS listener** (automatically creates ACM certificate for `api.swiftexchange.io`)
 - ECS Cluster with proper IAM roles
 - Ready for multiple services
+
+**Note:** 
+- The ALB HTTPS listener is automatically configured with an ACM certificate
+- A new ACM certificate is created for `api.swiftexchange.io` during deployment
+- **You will need to validate the certificate via DNS records in Route 53** after deployment
+- Both engines and proxy services use the same shared ALB and certificate
+
+#### **Certificate Validation (Required After Deployment)**
+
+After deploying infrastructure, you must validate the ACM certificate:
+
+1. **Check certificate status:**
+   ```bash
+   aws acm list-certificates --region ap-south-1 --profile swiftx-dev
+   ```
+
+2. **Get validation records:**
+   ```bash
+   aws acm describe-certificate \
+     --certificate-arn <certificate-arn> \
+     --region ap-south-1 \
+     --profile swiftx-dev \
+     --query 'Certificate.DomainValidationOptions[0].ResourceRecord'
+   ```
+
+3. **Add DNS record in Route 53:**
+   - Go to Route 53 → Hosted Zones → `swiftexchange.io`
+   - Create a CNAME record with the name and value from step 2
+   - Wait for validation (usually 5-10 minutes)
+
+4. **Verify validation:**
+   ```bash
+   aws acm describe-certificate \
+     --certificate-arn <certificate-arn> \
+     --region ap-south-1 \
+     --profile swiftx-dev \
+     --query 'Certificate.Status'
+   ```
+   Should return `ISSUED` when validated.
 
 ### **Step 2: Deploy Security (WAF)**
 ```bash
@@ -90,9 +130,16 @@ aws ssm put-parameter --name "/dev/swiftx/engines/api_key" --value "your-secret-
 ## 🏗️ **Infrastructure Created**
 
 ### **Shared (Created Once)**
-- `dev-swiftx-bootstrap-network` - VPC, Subnets, NAT, **Shared ALB**
+- `dev-swiftx-bootstrap-network` - VPC, Subnets, NAT, **Shared ALB with HTTPS listener and ACM certificate**
 - `dev-swiftx-cluster` - ECS Cluster, IAM Roles
 - `dev-swiftx-security-waf` - WAF Web ACL, Security Rules
+
+**ALB Configuration:**
+- HTTP listener (port 80) - redirects or serves default response
+- HTTPS listener (port 443) - configured with ACM certificate for `api.swiftexchange.io`
+- **ACM certificate is created automatically** during infrastructure deployment
+- **Certificate validation required**: After deployment, validate the certificate via DNS records in Route 53
+- Both engines and proxy services share the same ALB
 
 ### **Per Service**
 - `dev-swiftx-{service}-iac-network` - Target Group, Security Group, **ALB Listener Rule**

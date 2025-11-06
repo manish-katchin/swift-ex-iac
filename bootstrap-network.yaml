@@ -245,10 +245,14 @@ Resources:
         - CertificateArn: !Ref SharedALBCertificate
 
   # ACM Certificate for HTTPS
+  # Wildcard certificate covers all subdomains (*.swiftexchange.io)
+  # Also includes root domain (swiftexchange.io) via SubjectAlternativeNames
   SharedALBCertificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
-      DomainName: "api.swiftexchange.io"
+      DomainName: "*.swiftexchange.io"
+      SubjectAlternativeNames:
+        - "swiftexchange.io"
       ValidationMethod: DNS
       Tags:
         - Key: Name

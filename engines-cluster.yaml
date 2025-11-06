@@ -105,6 +105,45 @@ Resources:
         - Key: Name
           Value: !Sub "${EnvironmentName}-${ComponentName}-${PartName}-task-role"
 
+  # GitHub Actions CI/CD Role Policy (attaches to existing role)
+  GitHubActionsRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: GitHubActionsECRandECSPolicy
+      Roles:
+        - github-ecr-role
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # ECR Permissions
+          - Effect: Allow
+            Action:
+              - ecr:GetAuthorizationToken
+              - ecr:BatchCheckLayerAvailability
+              - ecr:GetDownloadUrlForLayer
+              - ecr:BatchGetImage
+              - ecr:PutImage
+              - ecr:InitiateLayerUpload
+              - ecr:UploadLayerPart
+              - ecr:CompleteLayerUpload
+            Resource: '*'
+          # ECS Permissions
+          - Effect: Allow
+            Action:
+              - ecs:UpdateService
+              - ecs:DescribeServices
+              - ecs:DescribeTaskDefinition
+              - ecs:RegisterTaskDefinition
+            Resource: '*'
+          # ECS Cluster and Service permissions
+          - Effect: Allow
+            Action:
+              - ecs:UpdateService
+              - ecs:DescribeServices
+            Resource:
+              - !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:service/${EnvironmentName}-${ComponentName}-${PartName}-cluster/*"
+              - !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EnvironmentName}-${ComponentName}-${PartName}-cluster"
+
 Outputs:
   ClusterName:
     Description: ECS Cluster Name
@@ -123,3 +162,9 @@ Outputs:
     Value: !GetAtt EnginesServiceTaskRole.Arn
     Export:
       Name: !Sub "${AWS::StackName}-TaskRoleArn"
+
+  GitHubActionsRolePolicyArn:
+    Description: GitHub Actions IAM Policy ARN
+    Value: !Ref GitHubActionsRolePolicy
+    Export:
+      Name: !Sub "${AWS::StackName}-GitHubActionsRolePolicyArn"
