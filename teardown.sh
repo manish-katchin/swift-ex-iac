@@ -5,10 +5,15 @@
 
 set -e
 
-# Default values
+# Source config file for default values (if not in CI environment)
+if [ -z "$CI" ] && [ -f ./config ]; then
+    . ./config
+fi
+
+# Default values (from config file or fallback)
 PROFILE=""
-ENVIRONMENT_NAME="dev"
-AWS_REGION="ap-south-1"
+ENVIRONMENT_NAME="${ENVIRONMENT_NAME:-dev}"
+AWS_REGION="${AWS_REGION:-ap-south-1}"
 FORCE_DELETE="false"
 DRY_RUN="false"
 MAX_RETRIES=3

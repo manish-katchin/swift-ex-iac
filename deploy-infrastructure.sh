@@ -5,11 +5,16 @@
 
 set -e
 
-# Default values
+# Source config file for default values (if not in CI environment)
+if [ -z "$CI" ] && [ -f ./config ]; then
+    . ./config
+fi
+
+# Default values (from config file or fallback)
 PROFILE=""
-ENVIRONMENT_NAME="dev"
-COMPONENT_NAME="swiftx"
-AWS_REGION="ap-south-1"
+ENVIRONMENT_NAME="${ENVIRONMENT_NAME:-dev}"
+COMPONENT_NAME="${COMPONENT_NAME:-swiftx}"
+AWS_REGION="${AWS_REGION:-ap-south-1}"
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do

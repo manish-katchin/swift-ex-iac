@@ -5,11 +5,16 @@
 
 set -e
 
-# Default values
+# Source config file for default values (if not in CI environment)
+if [ -z "$CI" ] && [ -f ./config ]; then
+    . ./config
+fi
+
+# Default values (from config file or fallback)
 PROFILE=""
-ENVIRONMENT=""
-COMPONENT="swiftx"
-REGION="ap-south-1"
+ENVIRONMENT="${ENVIRONMENT_NAME:-}"
+COMPONENT="${COMPONENT_NAME:-swiftx}"
+REGION="${AWS_REGION:-ap-south-1}"
 STACK_NAME=""
 LOAD_BALANCER_ARN=""
 VPC_ID=""

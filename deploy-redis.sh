@@ -5,11 +5,16 @@
 
 set -e
 
-# Configuration
-ENVIRONMENT=${1:-dev}
+# Source config file for default values (if not in CI environment)
+if [ -z "$CI" ] && [ -f ./config ]; then
+    . ./config
+fi
+
+# Configuration (from config file or fallback)
+ENVIRONMENT=${1:-${ENVIRONMENT_NAME:-dev}}
 BOOTSTRAP_STACK_NAME=${2:-"${ENVIRONMENT}-swiftx-bootstrap-network"}
 STACK_NAME="${ENVIRONMENT}-swiftx-redis"
-REGION="ap-south-1"
+REGION="${AWS_REGION:-ap-south-1}"
 PROFILE="swiftx-dev"
 
 # Colors for output

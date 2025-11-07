@@ -258,6 +258,43 @@ Resources:
         - Key: Name
           Value: !Sub "${EnvironmentName}-${ComponentName}-shared-alb-cert"
 
+  # Security Group for VPC Endpoints
+  VPCEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group for VPC Endpoints (Secrets Manager, etc.)
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        # Allow HTTPS from within the VPC (for ECS tasks to access Secrets Manager)
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref VpcCidr
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-${ComponentName}-vpc-endpoint-sg"
+
+  # VPC Endpoint for Secrets Manager
+  # Allows ECS tasks in private subnets to access Secrets Manager without internet gateway
+  SecretsManagerVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.secretsmanager"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      PrivateDnsEnabled: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-${ComponentName}-secretsmanager-endpoint"
+
 Outputs:
   VpcId:
     Description: VPC ID
@@ -336,3 +373,15 @@ Outputs:
     Value: !Ref NatGateway
     Export:
       Name: !Sub "${AWS::StackName}-NatGatewayId"
+
+  SecretsManagerVPCEndpointId:
+    Description: VPC Endpoint ID for Secrets Manager
+    Value: !Ref SecretsManagerVPCEndpoint
+    Export:
+      Name: !Sub "${AWS::StackName}-SecretsManagerVPCEndpointId"
+
+  VPCEndpointSecurityGroupId:
+    Description: Security Group ID for VPC Endpoints
+    Value: !Ref VPCEndpointSecurityGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-VPCEndpointSecurityGroupId"

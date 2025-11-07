@@ -5,8 +5,14 @@
 
 set -e
 
-ENVIRONMENT=${1:-dev}
-REGION="ap-south-1"
+# Source config file for default values (if not in CI environment)
+if [ -z "$CI" ] && [ -f ./config ]; then
+    . ./config
+fi
+
+# Configuration (from config file or fallback)
+ENVIRONMENT=${1:-${ENVIRONMENT_NAME:-dev}}
+REGION="${AWS_REGION:-ap-south-1}"
 PROFILE="swiftx-dev"
 
 # Colors for output

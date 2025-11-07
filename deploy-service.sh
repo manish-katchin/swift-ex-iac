@@ -5,19 +5,24 @@
 
 set -e
 
-# Default values
+# Source config file for default values (if not in CI environment)
+if [ -z "$CI" ] && [ -f ./config ]; then
+    . ./config
+fi
+
+# Default values (from config file or fallback)
 PROFILE=""
 SERVICE_NAME=""
 SERVICE_PORT="3000"
 PATH_PATTERN="/*"
 PRIORITY="100"
-ENVIRONMENT_NAME="dev"
-COMPONENT_NAME="swiftx"
-AWS_REGION="ap-south-1"
+ENVIRONMENT_NAME="${ENVIRONMENT_NAME:-dev}"
+COMPONENT_NAME="${COMPONENT_NAME:-swiftx}"
+AWS_REGION="${AWS_REGION:-ap-south-1}"
 # Domain Support
 DOMAIN_NAME=""
 CERTIFICATE_ARN=""
-ENABLE_HTTPS="false"
+ENABLE_HTTPS="${ENABLE_HTTPS:-false}"
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do

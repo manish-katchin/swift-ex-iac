@@ -15,7 +15,7 @@ aws cloudformation deploy \
     --template-file "$TEMPLATE_FILE" \
     --stack-name "$STACK_NAME" \
     --parameter-overrides \
-        StellarADDRESS="$STELLAR_ADDRESS" \
+        StellarAddress="$STELLAR_ADDRESS" \
         Environment="$ENVIRONMENT_NAME" \
     --capabilities CAPABILITY_NAMED_IAM \
     --no-fail-on-empty-changeset \
