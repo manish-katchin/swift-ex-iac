@@ -2,7 +2,7 @@
 
 set -e
 
-[ ! -z ${CI} ] || . ./config.dev
+[ ! -z ${CI} ] || . ./config
 
 echo $ENVIRONMENT_NAME
 
